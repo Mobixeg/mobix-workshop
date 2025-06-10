@@ -2,13 +2,17 @@
 import streamlit as st
 import pandas as pd
 import datetime
+import os
+import io
 
 st.set_page_config(page_title="Mobix - إدارة الورشة", layout="wide")
 st.title("🔧 Mobix | نظام إدارة الورشة")
 
-# --- إعداد قواعد البيانات ---
-
-if 'clients' not in st.session_state:
+# --- تحميل البيانات من ملف Excel (إن وجد) ---
+clients_file = "clients.xlsx"
+if os.path.exists(clients_file):
+    st.session_state.clients = pd.read_excel(clients_file)
+else:
     st.session_state.clients = pd.DataFrame(columns=[
         'الاسم', 'رقم الموبايل', 'نوع العربية', 'VIN', 'الخدمة المطلوبة', 'تاريخ الزيارة', 'موعد الصيانة القادمة'
     ])
@@ -40,7 +44,8 @@ with tabs[0]:
             new_row = pd.DataFrame([[name, phone, car_type, vin, service, visit_date, next_maintenance]],
                                    columns=st.session_state.clients.columns)
             st.session_state.clients = pd.concat([st.session_state.clients, new_row], ignore_index=True)
-            st.success("تم تسجيل البيانات بنجاح ✅")
+            st.session_state.clients.to_excel(clients_file, index=False)
+            st.success("✅ تم تسجيل العميل وحفظه في الملف")
 
 # --- تبويب إدارة قطع الغيار ---
 
@@ -65,9 +70,6 @@ with tabs[2]:
 
     # ✅ زر تصدير إلى Excel
     if not st.session_state.clients.empty:
-        import io
-        from openpyxl import Workbook
-
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             st.session_state.clients.to_excel(writer, index=False, sheet_name="Clients")
